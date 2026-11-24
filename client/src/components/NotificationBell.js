@@ -35,7 +35,7 @@ export default function NotificationBell() {
           </div>
           {notifications.length === 0 && <p className="muted" style={{ padding: 16 }}>You&apos;re all caught up.</p>}
           {notifications.map((n) => (
-            <div key={n._id} className={`notif ${n.isRead ? 'read' : 'unread'}`} onClick={() => go(n)}>
+            <div key={n.id} className={`notif ${n.isRead ? 'read' : 'unread'}`} onClick={() => go(n)}>
               <span className="unread-dot" />
               <div>
                 <div>{n.message}</div>
@@ -43,6 +43,9 @@ export default function NotificationBell() {
               </div>
             </div>
           ))}
+          <div style={{ padding: 10, textAlign: 'center' }}>
+            <button className="btn ghost sm" onClick={() => { setOpen(false); router.push('/notifications'); }}>View all notifications</button>
+          </div>
         </div>
       )}
     </div>

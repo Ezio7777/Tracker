@@ -55,7 +55,7 @@ export default function ProjectsPage() {
             <button className="btn" disabled={busy}>{busy ? 'Creating...' : 'Create project'}</button>
             <button type="button" className="btn ghost" onClick={() => setShowForm(false)}>Cancel</button>
           </div>
-          <p className="muted small" style={{ margin: '12px 0 0' }}>You become the owner. Add team members from the project page afterwards.</p>
+          <p className="muted small" style={{ margin: '12px 0 0' }}>You become the project manager. Add team members from the project page afterwards.</p>
         </form>
       )}
 
@@ -72,11 +72,11 @@ export default function ProjectsPage() {
         <>
           <div className="grid cols-2" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))' }}>
             {data.data.map((p) => (
-              <Link key={p._id} href={`/projects/${p._id}`} className="card hover project-card" style={{ marginBottom: 0 }}>
+              <Link key={p.id} href={`/projects/${p.id}`} className="card hover project-card" style={{ marginBottom: 0 }}>
                 <div className="row between" style={{ alignItems: 'flex-start' }}><h3>{p.name}</h3><StatusBadge status={p.status} /></div>
                 <p>{p.description || 'No description'}</p>
                 <div className="row between">
-                  <UserChip user={p.owner} />
+                  <UserChip user={p.manager} />
                   <span className="muted small">👥 {p.members.length + 1} {p.members.length === 0 ? 'person' : 'people'}</span>
                 </div>
               </Link>

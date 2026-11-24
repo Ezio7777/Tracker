@@ -9,6 +9,7 @@ import Spinner from '@/components/Spinner';
 import ErrorBox from '@/components/ErrorBox';
 import { StatusBadge, UserChip } from '@/components/Badges';
 import WorkItemTable from '@/components/WorkItemTable';
+import { fmtDate } from '@/lib/format';
 
 export default function ProjectDetailPage() {
   const { id } = useParams();
@@ -17,7 +18,7 @@ export default function ProjectDetailPage() {
   const [pick, setPick] = useState('');
 
   const { data: project, loading, error, reload } = useAsync(() => api(`/projects/${id}`).then((j) => j.data), [id]);
-  const canManage = project && (user.role === 'ADMIN' || project.owner._id === user._id);
+  const canManage = project && (user.role === 'ADMIN' || project.manager.id === user.id);
 
   const { data: candidates } = useAsync(async () => {
     if (!canManage) return [];
@@ -35,8 +36,8 @@ export default function ProjectDetailPage() {
   if (loading && !project) return <Spinner />;
   if (error && !project) return <ErrorBox error={error} onRetry={reload} />;
 
-  const memberIds = new Set([project.owner._id, ...project.members.map((m) => m._id)]);
-  const addable = (candidates || []).filter((u) => !memberIds.has(u._id));
+  const memberIds = new Set([project.manager.id, ...project.members.map((m) => m.id)]);
+  const addable = (candidates || []).filter((u) => !memberIds.has(u.id));
 
   return (
     <>
@@ -45,6 +46,7 @@ export default function ProjectDetailPage() {
         <div>
           <h1>{project.name} <StatusBadge status={project.status} /></h1>
           <p className="muted">{project.description || 'No description'}</p>
+          <p className="muted small">Manager: {project.manager.name} · Created {fmtDate(project.createdAt)}</p>
         </div>
         <div className="row">
           <Link className="btn secondary" href={`/work-items?project=${id}`}>All work items</Link>
@@ -64,12 +66,12 @@ export default function ProjectDetailPage() {
           <table>
             <thead><tr><th>Name</th><th>Email</th><th>Role</th><th /></tr></thead>
             <tbody>
-              <tr><td><UserChip user={project.owner} /> <span className="badge" style={{ marginLeft: 6 }}>Owner</span></td><td>{project.owner.email}</td><td>{project.owner.role}</td><td /></tr>
+              <tr><td><UserChip user={project.manager} /> <span className="badge" style={{ marginLeft: 6 }}>Manager</span></td><td>{project.manager.email}</td><td>{project.manager.role}</td><td /></tr>
               {project.members.map((m) => (
-                <tr key={m._id}>
+                <tr key={m.id}>
                   <td><UserChip user={m} /></td><td className="muted">{m.email}</td><td>{m.role}</td>
                   <td style={{ textAlign: 'right' }}>
-                    {canManage && <button className="btn danger sm" onClick={() => run(() => api(`/projects/${id}/members/${m._id}`, { method: 'DELETE' }))}>Remove</button>}
+                    {canManage && <button className="btn danger sm" onClick={() => run(() => api(`/projects/${id}/members/${m.id}`, { method: 'DELETE' }))}>Remove</button>}
                   </td>
                 </tr>
               ))}
@@ -80,7 +82,7 @@ export default function ProjectDetailPage() {
           <div className="row" style={{ marginTop: 12 }}>
             <select value={pick} onChange={(e) => setPick(e.target.value)} style={{ maxWidth: 320 }} aria-label="Add member">
               <option value="">Add a member...</option>
-              {addable.map((u) => <option key={u._id} value={u._id}>{u.name} ({u.email})</option>)}
+              {addable.map((u) => <option key={u.id} value={u.id}>{u.name} ({u.email})</option>)}
             </select>
             <button className="btn" disabled={!pick} onClick={() => run(async () => { await api(`/projects/${id}/members`, { method: 'POST', body: { userId: pick } }); setPick(''); })}>Add</button>
           </div>

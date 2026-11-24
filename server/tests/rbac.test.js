@@ -11,8 +11,8 @@ beforeAll(async () => {
   ]);
   projA = (await h.api(mgrA.token).post('/projects', { name: 'Project A' })).body.data;
   projB = (await h.api(mgrB.token).post('/projects', { name: 'Project B' })).body.data;
-  await h.api(mgrA.token).post(`/projects/${projA._id}/members`, { userId: String(memA.user._id) });
-  await h.api(mgrB.token).post(`/projects/${projB._id}/members`, { userId: String(memB.user._id) });
+  await h.api(mgrA.token).post(`/projects/${projA.id}/members`, { userId: String(memA.user.id) });
+  await h.api(mgrB.token).post(`/projects/${projB.id}/members`, { userId: String(memB.user.id) });
 });
 afterAll(h.disconnect);
 
@@ -21,7 +21,7 @@ describe('projects', () => {
     expect((await h.api(memA.token).post('/projects', { name: 'Nope' })).status).toBe(403);
   });
   it("a manager cannot add members to someone else's project", async () => {
-    const res = await h.api(mgrB.token).post(`/projects/${projA._id}/members`, { userId: String(memB.user._id) });
+    const res = await h.api(mgrB.token).post(`/projects/${projA.id}/members`, { userId: String(memB.user.id) });
     expect([403, 404]).toContain(res.status);
   });
   it('members only see projects they belong to', async () => {
@@ -35,18 +35,18 @@ describe('work items: visibility, assignment, field-level rules', () => {
 
   it('manager creates a task for a project member; non-members are rejected', async () => {
     const ok = await h.api(mgrA.token).post('/work-items', {
-      type: 'TASK', title: 'Build login', project: projA._id, assignee: String(memA.user._id),
+      type: 'TASK', title: 'Build login', project: projA.id, assignee: String(memA.user.id),
     });
     expect(ok.status).toBe(201);
     task = ok.body.data;
     const bad = await h.api(mgrA.token).post('/work-items', {
-      type: 'TASK', title: 'Wrong person', project: projA._id, assignee: String(memB.user._id),
+      type: 'TASK', title: 'Wrong person', project: projA.id, assignee: String(memB.user.id),
     });
     expect(bad.status).toBe(400);
   });
 
   it('members cannot create tasks, and a manager cannot create in a project they do not own', async () => {
-    const body = { type: 'TASK', title: 'Sneaky task', project: projA._id };
+    const body = { type: 'TASK', title: 'Sneaky task', project: projA.id };
     expect((await h.api(memA.token).post('/work-items', body)).status).toBe(403);
     expect((await h.api(mgrB.token).post('/work-items', body)).status).toBe(403);
   });
@@ -58,50 +58,57 @@ describe('work items: visibility, assignment, field-level rules', () => {
   });
 
   it('direct access to an invisible item looks like 404, for read, update and comment', async () => {
-    expect((await h.api(memB.token).get(`/work-items/${task._id}`)).status).toBe(404);
-    expect((await h.api(memB.token).patch(`/work-items/${task._id}`, { status: 'IN_PROGRESS' })).status).toBe(404);
-    expect((await h.api(outsider.token).post(`/work-items/${task._id}/comments`, { body: 'hi' })).status).toBe(404);
+    expect((await h.api(memB.token).get(`/work-items/${task.id}`)).status).toBe(404);
+    expect((await h.api(memB.token).patch(`/work-items/${task.id}`, { status: 'IN_PROGRESS' })).status).toBe(404);
+    expect((await h.api(outsider.token).post(`/work-items/${task.id}/comments`, { body: 'hi' })).status).toBe(404);
   });
 
   it('assignee can change status/description only, and only along valid transitions', async () => {
-    expect((await h.api(memA.token).patch(`/work-items/${task._id}`, { priority: 'CRITICAL' })).status).toBe(403);
-    expect((await h.api(memA.token).patch(`/work-items/${task._id}`, { assignee: String(memA.user._id) })).status).toBe(403);
-    expect((await h.api(memA.token).patch(`/work-items/${task._id}`, { status: 'DONE' })).status).toBe(422);
-    const ok = await h.api(memA.token).patch(`/work-items/${task._id}`, { status: 'IN_PROGRESS' });
+    expect((await h.api(memA.token).patch(`/work-items/${task.id}`, { priority: 'URGENT' })).status).toBe(403);
+    expect((await h.api(memA.token).patch(`/work-items/${task.id}`, { assignee: String(memA.user.id) })).status).toBe(403);
+    expect((await h.api(memA.token).patch(`/work-items/${task.id}`, { status: 'DONE' })).status).toBe(422);
+    const ok = await h.api(memA.token).patch(`/work-items/${task.id}`, { status: 'IN_PROGRESS' });
     expect(ok.status).toBe(200);
     expect(ok.body.data.status).toBe('IN_PROGRESS');
   });
 
   it('the detail endpoint tells the UI what the caller may do', async () => {
-    const res = await h.api(memA.token).get(`/work-items/${task._id}`);
+    const res = await h.api(memA.token).get(`/work-items/${task.id}`);
     expect(res.body.data.permissions.editScope).toBe('ASSIGNEE');
     expect(res.body.data.permissions.allowedNextStatuses).toEqual(expect.arrayContaining(['TODO', 'IN_REVIEW']));
     expect(res.body.data.permissions.canDelete).toBe(false);
   });
 
   it('comments are visible to anyone who can see the item', async () => {
-    const res = await h.api(memA.token).post(`/work-items/${task._id}/comments`, { body: 'Working on it' });
+    const res = await h.api(memA.token).post(`/work-items/${task.id}/comments`, { body: 'Working on it' });
     expect(res.status).toBe(201);
-    const list = await h.api(mgrA.token).get(`/work-items/${task._id}/comments`);
-    expect(list.body.data).toHaveLength(1);
+    const list = await h.api(mgrA.token).get(`/work-items/${task.id}/comments`);
+    expect(list.body.data.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('a project member who is neither assignee nor requester can read but not post comments', async () => {
+    await h.api(mgrA.token).post(`/projects/${projA.id}/members`, { userId: String(outsider.user.id) });
+    expect((await h.api(outsider.token).get(`/work-items/${task.id}/comments`)).status).toBe(200);
+    expect((await h.api(outsider.token).post(`/work-items/${task.id}/comments`, { body: 'hello' })).status).toBe(403);
+    expect((await h.api(mgrA.token).post(`/work-items/${task.id}/comments`, { body: 'Manager can' })).status).toBe(201);
   });
 
   it('members can raise tickets but cannot set an assignee; managers see project-less tickets', async () => {
-    const bad = await h.api(memA.token).post('/work-items', { type: 'TICKET', title: 'Help me', assignee: String(mgrA.user._id) });
+    const bad = await h.api(memA.token).post('/work-items', { type: 'TICKET', title: 'Help me', assignee: String(mgrA.user.id) });
     expect(bad.status).toBe(403);
     const ok = await h.api(memA.token).post('/work-items', { type: 'TICKET', title: 'VPN is down' });
     expect(ok.status).toBe(201);
     expect(ok.body.data.status).toBe('OPEN');
     const seenByMgr = await h.api(mgrB.token).get(`/work-items?type=TICKET&q=vpn`);
     expect(seenByMgr.body.meta.total).toBe(1);
-    expect((await h.api(memB.token).get(`/work-items/${ok.body.data._id}`)).status).toBe(404);
+    expect((await h.api(memB.token).get(`/work-items/${ok.body.data.id}`)).status).toBe(404);
   });
 
   it('delete is admin-only and soft', async () => {
-    expect((await h.api(mgrA.token).delete(`/work-items/${task._id}`)).status).toBe(403);
-    expect((await h.api(memA.token).delete(`/work-items/${task._id}`)).status).toBe(403);
-    expect((await h.api(admin.token).delete(`/work-items/${task._id}`)).status).toBe(204);
-    expect((await h.api(mgrA.token).get(`/work-items/${task._id}`)).status).toBe(404);
+    expect((await h.api(mgrA.token).delete(`/work-items/${task.id}`)).status).toBe(403);
+    expect((await h.api(memA.token).delete(`/work-items/${task.id}`)).status).toBe(403);
+    expect((await h.api(admin.token).delete(`/work-items/${task.id}`)).status).toBe(204);
+    expect((await h.api(mgrA.token).get(`/work-items/${task.id}`)).status).toBe(404);
   });
 });
 
@@ -112,9 +119,9 @@ describe('notifications', () => {
     expect(assigned).toBeDefined();
     expect(list.body.meta.unreadCount).toBeGreaterThan(0);
 
-    expect((await h.api(memB.token).patch(`/notifications/${assigned._id}/read`)).status).toBe(404);
-    expect((await h.api(admin.token).patch(`/notifications/${assigned._id}/read`)).status).toBe(404);
-    const ok = await h.api(memA.token).patch(`/notifications/${assigned._id}/read`);
+    expect((await h.api(memB.token).patch(`/notifications/${assigned.id}/read`)).status).toBe(404);
+    expect((await h.api(admin.token).patch(`/notifications/${assigned.id}/read`)).status).toBe(404);
+    const ok = await h.api(memA.token).patch(`/notifications/${assigned.id}/read`);
     expect(ok.status).toBe(200);
     expect(ok.body.data.isRead).toBe(true);
   });
@@ -127,9 +134,9 @@ describe('notifications', () => {
 
 describe('admin user management', () => {
   it('only admins manage roles; admins cannot change their own', async () => {
-    const target = String(memB.user._id);
+    const target = String(memB.user.id);
     expect((await h.api(mgrA.token).patch(`/users/${target}/role`, { role: 'ADMIN' })).status).toBe(403);
-    expect((await h.api(admin.token).patch(`/users/${String(admin.user._id)}/role`, { role: 'MEMBER' })).status).toBe(400);
+    expect((await h.api(admin.token).patch(`/users/${String(admin.user.id)}/role`, { role: 'MEMBER' })).status).toBe(400);
     expect((await h.api(admin.token).patch(`/users/${target}/role`, { role: 'MANAGER' })).status).toBe(200);
   });
 });

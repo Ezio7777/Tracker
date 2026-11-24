@@ -1,5 +1,5 @@
 const { z } = require('zod');
-const { objectId, pagination } = require('./common');
+const { uuid, pagination } = require('./common');
 
 const createProject = z.object({
   name: z.string().trim().min(2).max(120),
@@ -12,7 +12,7 @@ const updateProject = z.object({
   status: z.enum(['ACTIVE', 'ARCHIVED']),
 }).partial().strict().refine((o) => Object.keys(o).length > 0, { message: 'No fields to update' });
 
-const addMember = z.object({ userId: objectId }).strict();
+const addMember = z.object({ userId: uuid }).strict();
 
 const listProjectsQuery = z.object({
   status: z.enum(['ACTIVE', 'ARCHIVED']).optional(),

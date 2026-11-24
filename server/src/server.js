@@ -1,21 +1,29 @@
 const http = require('http');
-const mongoose = require('mongoose');
 const env = require('./config/env');
-const connectDB = require('./config/db');
+const { pool } = require('./db/pool');
 const app = require('./app');
 const { initSocket } = require('./sockets');
 const { startDueSoonJob } = require('./jobs/dueSoon.job');
+const { startCleanupJob } = require('./jobs/cleanup.job');
 
 async function main() {
-  await connectDB(env.mongoUri);
+  await pool.query('SELECT 1'); // fail fast if the database is not reachable
+  console.log('PostgreSQL connected');
+
   const server = http.createServer(app);
   initSocket(server);
-  if (env.enableCron) startDueSoonJob();
+  if (env.enableCron) {
+    startDueSoonJob();
+    startCleanupJob();
+  }
   server.listen(env.port, () => console.log(`API + Socket.IO listening on :${env.port} (${env.nodeEnv})`));
 
-  const shutdown = () => server.close(async () => { await mongoose.disconnect(); process.exit(0); });
+  const shutdown = () => server.close(async () => { await pool.end(); process.exit(0); });
   process.on('SIGTERM', shutdown);
   process.on('SIGINT', shutdown);
 }
 
-main().catch((err) => { console.error('Failed to start', err); process.exit(1); });
+main().catch((err) => {
+  console.error('Failed to start. Is PostgreSQL running and migrated? (npm run db:setup)\n', err.message);
+  process.exit(1);
+});

@@ -78,7 +78,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"New User\",\n  \"email\": \"new1795412759280@tracker.dev\",\n  \"password\": \"Password1\"\n}"
+              "raw": "{\n  \"name\": \"New User\",\n  \"email\": \"new1795464523003@tracker.dev\",\n  \"password\": \"Password1\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/register",
@@ -103,7 +103,7 @@
                   "pm.test('status is 200', () => pm.response.to.have.status(200));",
                   "const j = pm.response.json();",
                   "pm.collectionVariables.set('accessToken', j.data.accessToken);",
-                  "pm.collectionVariables.set('userId', j.data.user._id);"
+                  "pm.collectionVariables.set('userId', j.data.user.id);"
                 ]
               }
             }
@@ -146,7 +146,7 @@
                   "pm.test('status is 200', () => pm.response.to.have.status(200));",
                   "const j = pm.response.json();",
                   "pm.collectionVariables.set('accessToken', j.data.accessToken);",
-                  "pm.collectionVariables.set('userId', j.data.user._id);"
+                  "pm.collectionVariables.set('userId', j.data.user.id);"
                 ]
               }
             }
@@ -189,7 +189,7 @@
                   "pm.test('status is 200', () => pm.response.to.have.status(200));",
                   "const j = pm.response.json();",
                   "pm.collectionVariables.set('accessToken', j.data.accessToken);",
-                  "pm.collectionVariables.set('userId', j.data.user._id);"
+                  "pm.collectionVariables.set('userId', j.data.user.id);"
                 ]
               }
             }
@@ -327,7 +327,7 @@
                 "exec": [
                   "pm.test('status is 200', () => pm.response.to.have.status(200));",
                   "const m = pm.response.json().data.find(u => u.role === 'MEMBER');",
-                  "if (m) pm.collectionVariables.set('memberUserId', m._id);"
+                  "if (m) pm.collectionVariables.set('memberUserId', m.id);"
                 ]
               }
             }
@@ -442,7 +442,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 201', () => pm.response.to.have.status(201));",
-                  "pm.collectionVariables.set('projectId', pm.response.json().data._id);"
+                  "pm.collectionVariables.set('projectId', pm.response.json().data.id);"
                 ]
               }
             }
@@ -457,7 +457,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Postman Project 1795412759280\",\n  \"description\": \"Created from Postman\"\n}"
+              "raw": "{\n  \"name\": \"Postman Project 1795464523003\",\n  \"description\": \"Created from Postman\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/projects",
@@ -644,7 +644,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 201', () => pm.response.to.have.status(201));",
-                  "pm.collectionVariables.set('workItemId', pm.response.json().data._id);"
+                  "pm.collectionVariables.set('workItemId', pm.response.json().data.id);"
                 ]
               }
             }
@@ -659,7 +659,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"type\": \"TASK\",\n  \"title\": \"Postman task\",\n  \"description\": \"From Postman\",\n  \"priority\": \"HIGH\",\n  \"project\": \"{{projectId}}\",\n  \"assignee\": \"{{memberUserId}}\",\n  \"dueDate\": \"2026-11-30T05:45:59.280Z\"\n}"
+              "raw": "{\n  \"type\": \"TASK\",\n  \"title\": \"Postman task\",\n  \"description\": \"From Postman\",\n  \"priority\": \"HIGH\",\n  \"project\": \"{{projectId}}\",\n  \"assignee\": \"{{memberUserId}}\",\n  \"dueDate\": \"2026-11-30T20:08:43.003Z\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/work-items",
@@ -681,7 +681,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 201', () => pm.response.to.have.status(201));",
-                  "pm.collectionVariables.set('ticketId', pm.response.json().data._id);"
+                  "pm.collectionVariables.set('ticketId', pm.response.json().data.id);"
                 ]
               }
             }
@@ -862,7 +862,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"priority\": \"CRITICAL\"\n}"
+              "raw": "{\n  \"priority\": \"URGENT\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/work-items/{{workItemId}}",
@@ -1086,7 +1086,7 @@
                 "exec": [
                   "pm.test('status is 200', () => pm.response.to.have.status(200));",
                   "const d = pm.response.json().data;",
-                  "if (d.length) pm.collectionVariables.set('notificationId', d[0]._id);"
+                  "if (d.length) pm.collectionVariables.set('notificationId', d[0].id);"
                 ]
               }
             }

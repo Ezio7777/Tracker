@@ -28,7 +28,7 @@ export default function DashboardPage() {
   const { data, loading, error, reload } = useAsync(async () => {
     const [summary, recent] = await Promise.all([api('/dashboard/summary'), api('/work-items?limit=6&sortBy=updatedAt&order=desc')]);
     return { summary: summary.data, recent: recent.data };
-  }, [last?._id]); // refresh when a live notification arrives
+  }, [last?.id]); // refresh when a live notification arrives
 
   if (loading && !data) return <Spinner />;
   if (error && !data) return <ErrorBox error={error} onRetry={reload} />;

@@ -5,8 +5,8 @@ const INITIAL_STATUS = { TASK: 'TODO', TICKET: 'OPEN' };
 const TERMINAL_STATUSES = ['CANCELLED', 'CLOSED']; // item is locked
 const CLOSED_LIKE = ['DONE', 'CANCELLED', 'RESOLVED', 'CLOSED']; // not "open work"
 
-const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
-const PRIORITY_RANK = { LOW: 1, MEDIUM: 2, HIGH: 3, CRITICAL: 4 };
+const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
+const PRIORITY_RANK = { LOW: 1, MEDIUM: 2, HIGH: 3, URGENT: 4 };
 
 // 'ANY'   = whoever may update the status (e.g. the assignee) can do it
 // 'STAFF' = Manager (owner of the project / triage) or Admin only

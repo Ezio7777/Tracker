@@ -24,11 +24,11 @@ export default function WorkItemForm({ initialProject = '' }) {
   const usableProjects = useMemo(() => {
     const list = projects || [];
     // tasks can only be created in projects the user manages; tickets in any project they belong to
-    if (form.type === 'TASK' && user.role === 'MANAGER') return list.filter((p) => p.owner?._id === user._id);
+    if (form.type === 'TASK' && user.role === 'MANAGER') return list.filter((p) => p.manager?.id === user.id);
     return list;
   }, [projects, form.type, user]);
 
-  const canAssign = staff && (form.type === 'TASK' || !form.project || usableProjects.some((p) => p._id === form.project && (user.role === 'ADMIN' || p.owner?._id === user._id)));
+  const canAssign = staff && (form.type === 'TASK' || !form.project || usableProjects.some((p) => p.id === form.project && (user.role === 'ADMIN' || p.manager?.id === user.id)));
   const assignees = useAssigneeOptions(form.project || null, canAssign);
 
   const submit = async (e) => {
@@ -43,7 +43,7 @@ export default function WorkItemForm({ initialProject = '' }) {
     };
     try {
       const j = await api('/work-items', { method: 'POST', body });
-      router.push(`/work-items/${j.data._id}`);
+      router.push(`/work-items/${j.data.id}`);
     } catch (err) { setError(err); setBusy(false); }
   };
 
@@ -72,7 +72,7 @@ export default function WorkItemForm({ initialProject = '' }) {
           <label htmlFor="project">Project {form.type === 'TASK' ? '(required)' : '(optional)'}</label>
           <select id="project" required={form.type === 'TASK'} value={form.project} onChange={set('project')}>
             <option value="">{form.type === 'TASK' ? 'Select a project' : 'No project (general support)'}</option>
-            {usableProjects.map((p) => <option key={p._id} value={p._id}>{p.name}</option>)}
+            {usableProjects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </div>
         {canAssign && (
@@ -81,7 +81,7 @@ export default function WorkItemForm({ initialProject = '' }) {
               <label htmlFor="assignee">Assignee</label>
               <select id="assignee" value={form.assignee} onChange={set('assignee')}>
                 <option value="">Unassigned</option>
-                {assignees.map((u) => <option key={u._id} value={u._id}>{u.name} ({u.role})</option>)}
+                {assignees.map((u) => <option key={u.id} value={u.id}>{u.name} ({u.role})</option>)}
               </select>
             </div>
             <div>

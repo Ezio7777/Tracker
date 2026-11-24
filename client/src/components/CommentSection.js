@@ -6,7 +6,7 @@ import { fmtDateTime } from '@/lib/format';
 import Spinner from './Spinner';
 import ErrorBox from './ErrorBox';
 
-export default function CommentSection({ workItemId, refreshKey }) {
+export default function CommentSection({ workItemId, refreshKey, canComment = true }) {
   const { data, loading, error, reload } = useAsync(
     () => api(`/work-items/${workItemId}/comments?limit=100`).then((j) => j.data),
     [workItemId, refreshKey]
@@ -35,18 +35,19 @@ export default function CommentSection({ workItemId, refreshKey }) {
       <ErrorBox error={error} onRetry={reload} />
       {data && data.length === 0 && <p className="muted">No comments yet. Start the conversation.</p>}
       {data && data.map((c) => (
-        <div className="comment" key={c._id}>
+        <div className="comment" key={c.id}>
           <strong>{c.author?.name}</strong> <span className="badge">{c.author?.role}</span>
           <span className="muted small"> · {fmtDateTime(c.createdAt)}</span>
           <div style={{ whiteSpace: 'pre-wrap', marginTop: 4 }}>{c.body}</div>
         </div>
       ))}
-      <form onSubmit={submit}>
+      {!canComment && <p className="muted small" style={{ marginTop: 12 }}>You can read comments here, but only people assigned to or raising this item can reply.</p>}
+      {canComment && <form onSubmit={submit}>
         <label htmlFor="comment">Add a comment</label>
         <textarea id="comment" value={body} onChange={(e) => setBody(e.target.value)} maxLength={2000} />
         <ErrorBox error={postError} />
         <button className="btn" style={{ marginTop: 8 }} disabled={busy || !body.trim()}>{busy ? 'Posting...' : 'Post comment'}</button>
-      </form>
+      </form>}
     </div>
   );
 }

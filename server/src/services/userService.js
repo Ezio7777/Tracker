@@ -1,46 +1,32 @@
-const User = require('../models/User');
+const userRepository = require('../repositories/userRepository');
 const ApiError = require('../utils/ApiError');
 const { ROLES } = require('../constants/roles');
-const { sameId } = require('../utils/ids');
-const { pageMeta, escapeRegex } = require('../utils/pagination');
+const { pageMeta } = require('../utils/pagination');
 const { disconnectUser } = require('../sockets');
 const authService = require('./authService');
 
 async function list(actor, { role, q, isActive, page, limit }) {
-  const filter = {};
-  let select = '';
+  let filters = { role, q, isActive, page, limit };
   if (actor.role === ROLES.MANAGER) {
-    // Managers only get a minimal picker list of assignable people
+    // Managers only get a short list of people they could assign work to.
     if (role === ROLES.ADMIN) throw ApiError.forbidden('Managers cannot list admins');
-    filter.isActive = true;
-    filter.role = role || { $in: [ROLES.MEMBER, ROLES.MANAGER] };
-    select = 'name email role';
-  } else {
-    if (role) filter.role = role;
-    if (isActive !== undefined) filter.isActive = isActive;
+    filters = { role, q, page, limit, isActive: true, minimal: true, roles: [ROLES.MEMBER, ROLES.MANAGER] };
   }
-  if (q) {
-    const rx = new RegExp(escapeRegex(q), 'i');
-    filter.$or = [{ name: rx }, { email: rx }];
-  }
-  const [data, total] = await Promise.all([
-    User.find(filter).select(select).sort({ name: 1 }).skip((page - 1) * limit).limit(limit),
-    User.countDocuments(filter),
-  ]);
+  const { data, total } = await userRepository.list(filters);
   return { data, meta: pageMeta(total, page, limit) };
 }
 
 async function updateRole(actor, id, role) {
-  if (sameId(actor._id, id)) throw ApiError.badRequest('You cannot change your own role');
-  const user = await User.findByIdAndUpdate(id, { role }, { new: true });
+  if (actor.id === id) throw ApiError.badRequest('You cannot change your own role');
+  const user = await userRepository.updateRole(id, role);
   if (!user) throw ApiError.notFound('User not found');
-  disconnectUser(id); // sockets re-auth with their new role
+  disconnectUser(id); // their live sockets reconnect with the new role
   return user;
 }
 
 async function updateStatus(actor, id, isActive) {
-  if (sameId(actor._id, id)) throw ApiError.badRequest('You cannot deactivate yourself');
-  const user = await User.findByIdAndUpdate(id, { isActive }, { new: true });
+  if (actor.id === id) throw ApiError.badRequest('You cannot deactivate yourself');
+  const user = await userRepository.updateActive(id, isActive);
   if (!user) throw ApiError.notFound('User not found');
   if (!isActive) {
     await authService.revokeAllForUser(id);

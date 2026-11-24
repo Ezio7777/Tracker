@@ -1,7 +1,7 @@
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const env = require('../config/env');
-const User = require('../models/User');
+const userRepository = require('../repositories/userRepository');
 
 let io = null;
 
@@ -14,7 +14,7 @@ function initSocket(httpServer) {
       const token = socket.handshake.auth && socket.handshake.auth.token;
       if (!token) return next(new Error('Authentication required'));
       const payload = jwt.verify(token, env.jwtAccessSecret);
-      const user = await User.findById(payload.sub);
+      const user = await userRepository.findById(payload.sub);
       if (!user || !user.isActive) return next(new Error('Unauthorized'));
       socket.user = user;
       return next();
@@ -24,9 +24,9 @@ function initSocket(httpServer) {
   });
 
   io.on('connection', (socket) => {
-    socket.join(`user:${socket.user._id}`);
+    socket.join(`user:${socket.user.id}`);
     if (socket.user.role === 'ADMIN') socket.join('role:ADMIN');
-    socket.emit('ready', { userId: String(socket.user._id) });
+    socket.emit('ready', { userId: socket.user.id });
   });
   return io;
 }

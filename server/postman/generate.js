@@ -21,7 +21,7 @@ const req = (name, method, url, { body, tests = [], noAuth } = {}) => ({
 const login = (label, email) => req(`Login as ${label}`, 'POST', '/auth/login', {
   noAuth: true,
   body: { email, password: 'Password@123' },
-  tests: [status(200), 'const j = pm.response.json();', set('accessToken', 'j.data.accessToken'), set('userId', 'j.data.user._id')],
+  tests: [status(200), 'const j = pm.response.json();', set('accessToken', 'j.data.accessToken'), set('userId', 'j.data.user.id')],
 });
 
 const folders = [
@@ -36,13 +36,13 @@ const folders = [
   ]],
   ['2. Users (Admin / Manager)', [
     req('List users (picker for managers)', 'GET', '/users?limit=50', {
-      tests: [status(200), "const m = pm.response.json().data.find(u => u.role === 'MEMBER');", "if (m) " + set('memberUserId', 'm._id')],
+      tests: [status(200), "const m = pm.response.json().data.find(u => u.role === 'MEMBER');", "if (m) " + set('memberUserId', 'm.id')],
     }),
     req('Change role (Admin)', 'PATCH', '/users/{{memberUserId}}/role', { body: { role: 'MEMBER' }, tests: [status(200)] }),
     req('Deactivate / activate (Admin)', 'PATCH', '/users/{{memberUserId}}/status', { body: { isActive: true }, tests: [status(200)] }),
   ]],
   ['3. Projects (log in as Manager)', [
-    req('Create project', 'POST', '/projects', { body: { name: `Postman Project ${Date.now()}`, description: 'Created from Postman' }, tests: [status(201), set('projectId', 'pm.response.json().data._id')] }),
+    req('Create project', 'POST', '/projects', { body: { name: `Postman Project ${Date.now()}`, description: 'Created from Postman' }, tests: [status(201), set('projectId', 'pm.response.json().data.id')] }),
     req('List projects', 'GET', '/projects', { tests: [status(200)] }),
     req('Get project', 'GET', '/projects/{{projectId}}', { tests: [status(200)] }),
     req('Update project', 'PATCH', '/projects/{{projectId}}', { body: { description: 'Updated' }, tests: [status(200)] }),
@@ -52,13 +52,13 @@ const folders = [
   ['4. Work items', [
     req('Create TASK (Manager, assign to member)', 'POST', '/work-items', {
       body: { type: 'TASK', title: 'Postman task', description: 'From Postman', priority: 'HIGH', project: '{{projectId}}', assignee: '{{memberUserId}}', dueDate: new Date(Date.now() + 7 * 864e5).toISOString() },
-      tests: [status(201), set('workItemId', 'pm.response.json().data._id')],
+      tests: [status(201), set('workItemId', 'pm.response.json().data.id')],
     }),
-    req('Raise TICKET (any role)', 'POST', '/work-items', { body: { type: 'TICKET', title: 'Postman ticket', description: 'Something is broken', priority: 'MEDIUM' }, tests: [status(201), set('ticketId', 'pm.response.json().data._id')] }),
+    req('Raise TICKET (any role)', 'POST', '/work-items', { body: { type: 'TICKET', title: 'Postman ticket', description: 'Something is broken', priority: 'MEDIUM' }, tests: [status(201), set('ticketId', 'pm.response.json().data.id')] }),
     req('List (filters + pagination + sorting)', 'GET', '/work-items?status=TODO&type=TASK&priority=HIGH&assignee=me&q=postman&sortBy=priority&order=desc&page=1&limit=10', { tests: [status(200)] }),
     req('Get one (+ permissions block)', 'GET', '/work-items/{{workItemId}}', { tests: [status(200)] }),
     req('Update status (valid transition)', 'PATCH', '/work-items/{{workItemId}}', { body: { status: 'IN_PROGRESS' }, tests: [status(200)] }),
-    req('Update priority (Manager/Admin)', 'PATCH', '/work-items/{{workItemId}}', { body: { priority: 'CRITICAL' }, tests: [status(200)] }),
+    req('Update priority (Manager/Admin)', 'PATCH', '/work-items/{{workItemId}}', { body: { priority: 'URGENT' }, tests: [status(200)] }),
     req('Invalid transition IN_PROGRESS -> DONE (expect 422)', 'PATCH', '/work-items/{{workItemId}}', { body: { status: 'DONE' }, tests: [status(422)] }),
     req('Escalate ticket', 'POST', '/work-items/{{ticketId}}/escalate', { tests: [status(200)] }),
     req('History / audit trail', 'GET', '/work-items/{{workItemId}}/history', { tests: [status(200)] }),
@@ -69,7 +69,7 @@ const folders = [
     req('List comments', 'GET', '/work-items/{{ticketId}}/comments', { tests: [status(200)] }),
   ]],
   ['6. Notifications', [
-    req('List (unread only)', 'GET', '/notifications?unread=true', { tests: [status(200), 'const d = pm.response.json().data;', "if (d.length) " + set('notificationId', 'd[0]._id')] }),
+    req('List (unread only)', 'GET', '/notifications?unread=true', { tests: [status(200), 'const d = pm.response.json().data;', "if (d.length) " + set('notificationId', 'd[0].id')] }),
     req('Unread count', 'GET', '/notifications/unread-count', { tests: [status(200)] }),
     req('Mark one read', 'PATCH', '/notifications/{{notificationId}}/read', { tests: [status(200)] }),
     req('Mark all read', 'PATCH', '/notifications/read-all', { tests: [status(200)] }),

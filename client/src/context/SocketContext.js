@@ -15,7 +15,7 @@ export function SocketProvider({ children }) {
   const [toast, setToast] = useState(null);
   const [connected, setConnected] = useState(false);
 
-  const userId = user?._id;
+  const userId = user?.id;
   useEffect(() => {
     if (!userId) { setNotifications([]); setUnread(0); return undefined; }
     let active = true;
@@ -47,9 +47,9 @@ export function SocketProvider({ children }) {
 
   const markRead = useCallback(async (n) => {
     if (n.isRead) return;
-    setNotifications((prev) => prev.map((x) => (x._id === n._id ? { ...x, isRead: true } : x)));
+    setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, isRead: true } : x)));
     setUnread((c) => Math.max(0, c - 1));
-    try { await api(`/notifications/${n._id}/read`, { method: 'PATCH' }); } catch {}
+    try { await api(`/notifications/${n.id}/read`, { method: 'PATCH' }); } catch {}
   }, []);
 
   const markAllRead = useCallback(async () => {

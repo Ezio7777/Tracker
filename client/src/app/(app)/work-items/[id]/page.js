@@ -27,7 +27,7 @@ export default function WorkItemDetailPage() {
   const { data: item, loading, error, reload } = useAsync(() => api(`/work-items/${id}`).then((j) => j.data), [id]);
   const { data: history, reload: reloadHistory } = useAsync(() => api(`/work-items/${id}/history`).then((j) => j.data), [id]);
   const perms = item?.permissions;
-  const assignees = useAssigneeOptions(item?.project?._id || null, editing && perms?.editScope === 'FULL');
+  const assignees = useAssigneeOptions(item?.project?.id || null, editing && perms?.editScope === 'FULL');
 
   // Live: someone changed / commented on this item -> refresh everything
   useEffect(() => {
@@ -45,7 +45,7 @@ export default function WorkItemDetailPage() {
   const startEdit = () => {
     setForm({
       title: item.title, description: item.description, priority: item.priority,
-      assignee: item.assignee?._id || '', dueDate: toInputDateTime(item.dueDate),
+      assignee: item.assignee?.id || '', dueDate: toInputDateTime(item.dueDate),
     });
     setEditing(true);
   };
@@ -56,7 +56,7 @@ export default function WorkItemDetailPage() {
     if (perms.editableFields.includes('title') && form.title !== item.title) body.title = form.title;
     if (perms.editableFields.includes('description') && form.description !== item.description) body.description = form.description;
     if (perms.editableFields.includes('priority') && form.priority !== item.priority) body.priority = form.priority;
-    if (perms.editableFields.includes('assignee') && form.assignee !== (item.assignee?._id || '')) body.assignee = form.assignee || null;
+    if (perms.editableFields.includes('assignee') && form.assignee !== (item.assignee?.id || '')) body.assignee = form.assignee || null;
     if (perms.editableFields.includes('dueDate') && form.dueDate !== toInputDateTime(item.dueDate)) body.dueDate = form.dueDate ? new Date(form.dueDate).toISOString() : null;
     if (!Object.keys(body).length) return setEditing(false);
     act(async () => { await api(`/work-items/${id}`, { method: 'PATCH', body }); setEditing(false); });
@@ -115,7 +115,7 @@ export default function WorkItemDetailPage() {
                 <div><label htmlFor="a">Assignee</label>
                   <select id="a" value={form.assignee} onChange={(e) => setForm({ ...form, assignee: e.target.value })}>
                     <option value="">Unassigned</option>
-                    {assignees.map((u) => <option key={u._id} value={u._id}>{u.name} ({u.role})</option>)}
+                    {assignees.map((u) => <option key={u.id} value={u.id}>{u.name} ({u.role})</option>)}
                   </select>
                 </div>
               )}
@@ -130,7 +130,7 @@ export default function WorkItemDetailPage() {
 
         <hr className="divider" />
         <div className="grid cols-4">
-          <div><div className="meta-label">Project</div>{item.project ? <Link href={`/projects/${item.project._id}`}>{item.project.name}</Link> : 'None (general support)'}</div>
+          <div><div className="meta-label">Project</div>{item.project ? <Link href={`/projects/${item.project.id}`}>{item.project.name}</Link> : 'None (general support)'}</div>
           <div><div className="meta-label">Requester</div><UserChip user={item.requester} /></div>
           <div><div className="meta-label">Assignee</div><UserChip user={item.assignee} /></div>
           <div><div className="meta-label">Due</div>{fmtDateTime(item.dueDate)}</div>
@@ -142,7 +142,7 @@ export default function WorkItemDetailPage() {
       </div>
 
       <div className="grid cols-2" style={{ alignItems: 'start' }}>
-        <CommentSection workItemId={id} refreshKey={tick} />
+        <CommentSection workItemId={id} refreshKey={tick} canComment={perms.canComment} />
         <div className="card"><h2>Activity</h2><HistoryTimeline history={history || []} /></div>
       </div>
     </>

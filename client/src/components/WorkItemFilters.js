@@ -29,7 +29,7 @@ export default function WorkItemFilters({ filters, onChange, onReset, projects }
         {sel('type', ['TASK', 'TICKET'], 'All types')}
         {sel('status', ALL_STATUSES, 'All statuses')}
         {sel('priority', PRIORITIES, 'All priorities')}
-        {sel('project', projects.map((p) => ({ value: p._id, text: p.name })), 'All projects')}
+        {sel('project', projects.map((p) => ({ value: p.id, text: p.name })), 'All projects')}
         {sel('assignee', [{ value: 'me', text: 'Assigned to me' }], 'Any assignee')}
         {sel('requester', [{ value: 'me', text: 'Raised by me' }], 'Any requester')}
         <div className="seg">

@@ -19,7 +19,7 @@ export default function HistoryTimeline({ history }) {
   return (
     <ul className="timeline">
       {[...history].reverse().map((h) => (
-        <li key={h._id}>
+        <li key={h.id}>
           <strong>{h.actor?.name || 'Someone'}</strong> {describe(h)}
           <div className="muted small">{fmtDateTime(h.createdAt)}</div>
         </li>

@@ -48,18 +48,18 @@ export default function AdminUsersPage() {
             <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th></tr></thead>
             <tbody>
               {data.data.map((u) => {
-                const self = u._id === user._id;
+                const self = u.id === user.id;
                 return (
-                  <tr key={u._id}>
+                  <tr key={u.id}>
                     <td><UserChip user={u} />{self && <span className="badge" style={{ marginLeft: 6 }}>You</span>}</td>
                     <td>{u.email}</td>
                     <td>
-                      <select value={u.role} disabled={self} style={{ width: 130 }} onChange={(e) => update(u._id, 'role', { role: e.target.value })} aria-label={`Role for ${u.name}`}>
+                      <select value={u.role} disabled={self} style={{ width: 130 }} onChange={(e) => update(u.id, 'role', { role: e.target.value })} aria-label={`Role for ${u.name}`}>
                         <option>ADMIN</option><option>MANAGER</option><option>MEMBER</option>
                       </select>
                     </td>
                     <td>
-                      <button className={`btn sm ${u.isActive ? 'secondary' : ''}`} disabled={self} onClick={() => update(u._id, 'status', { isActive: !u.isActive })}>
+                      <button className={`btn sm ${u.isActive ? 'secondary' : ''}`} disabled={self} onClick={() => update(u.id, 'status', { isActive: !u.isActive })}>
                         {u.isActive ? 'Active - deactivate' : 'Inactive - activate'}
                       </button>
                     </td>

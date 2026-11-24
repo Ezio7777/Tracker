@@ -101,7 +101,7 @@ td a{font-weight:600;color:var(--text)}td a:hover{color:var(--primary)}
 .badge.pip::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;margin-right:6px;opacity:.85}
 .s-TODO,.s-OPEN{background:#e9ecff;color:#3c3fc4}.s-IN_PROGRESS{background:#fff1d6;color:#9a5b00}.s-IN_REVIEW{background:#f0e9ff;color:#6b3fc9}
 .s-DONE,.s-RESOLVED,.s-ACTIVE{background:#dff6ea;color:#16794c}.s-CANCELLED,.s-CLOSED,.s-ARCHIVED{background:#eceef3;color:#566074}.s-ESCALATED{background:#ffe3e3;color:#b42323}
-.p-LOW{background:#eef0f5;color:#566074}.p-MEDIUM{background:#e2f0ff;color:#1b5fb8}.p-HIGH{background:#ffeadb;color:#b2500f}.p-CRITICAL{background:#ffe3e3;color:#b42323}
+.p-LOW{background:#eef0f5;color:#566074}.p-MEDIUM{background:#e2f0ff;color:#1b5fb8}.p-HIGH{background:#ffeadb;color:#b2500f}.p-URGENT{background:#ffe3e3;color:#b42323}
 .t-TASK{background:#dcf6fb;color:#0f6f83}.t-TICKET{background:#fde6f2;color:#a3205f}
 .avatar{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;color:#fff;font-size:10.5px;font-weight:700;flex:none;box-shadow:0 0 0 2px #fff}
 .chip{display:inline-flex;align-items:center;gap:8px}.chip span.n{font-weight:550}

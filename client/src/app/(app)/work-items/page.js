@@ -22,7 +22,7 @@ export default function WorkItemsPage({ searchParams }) {
   const { data: projects } = useAsync(() => api('/projects?limit=50').then((j) => j.data), []);
   const { data, loading, error, reload } = useAsync(
     () => api(`/work-items?${qs({ ...filters, page, limit: 10 })}`),
-    [filters, page, last?._id]
+    [filters, page, last?.id]
   );
 
   const change = (patch) => { setFilters((f) => ({ ...f, ...patch })); setPage(1); };

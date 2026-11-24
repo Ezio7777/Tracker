@@ -41,8 +41,7 @@ describe('auth', () => {
 
   it('deactivated users are locked out immediately', async () => {
     const { token, user } = await h.makeUser('MEMBER');
-    user.isActive = false;
-    await user.save();
+    await h.pool.query('UPDATE users SET is_active = false WHERE id = $1', [user.id]);
     expect((await h.api(token).get('/auth/me')).status).toBe(401);
   });
 

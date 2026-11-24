@@ -1,78 +1,69 @@
-const Notification = require('../models/Notification');
-const User = require('../models/User');
+const notificationRepository = require('../repositories/notificationRepository');
+const userRepository = require('../repositories/userRepository');
 const ApiError = require('../utils/ApiError');
 const { ROLES } = require('../constants/roles');
 const { idOf } = require('../utils/ids');
 const { pageMeta } = require('../utils/pagination');
 const { emitToUser, emitToRole } = require('../sockets');
 
-const userIdsByRole = (roles) => User.find({ role: { $in: roles }, isActive: true }).distinct('_id');
-
 /**
- * Persist first (DB is the source of truth), then push over the socket.
- * De-duplicates recipients and never notifies the actor about their own action.
+ * Notifications are written to the database first (inside the caller's transaction when there is one).
+ * Sending them over the socket is a separate step, deliver(), that the caller runs AFTER the transaction
+ * committed, so nobody is told about something that was rolled back.
  */
-async function notify({ recipients, actor, type, message, entityId, entityType = 'WORK_ITEM' }) {
-  const actorId = actor ? String(idOf(actor)) : null;
-  const unique = [...new Set(recipients.filter(Boolean).map((r) => String(idOf(r))))].filter((id) => id !== actorId);
+async function create({ recipients, actor, type, message, entityId }, db) {
+  const actorId = actor ? idOf(actor) : null;
+  const unique = [...new Set(recipients.filter(Boolean).map(idOf))].filter((id) => id !== actorId); // never notify yourself
   if (!unique.length) return [];
+  return notificationRepository.insertMany(unique, { type, message, entityId }, db);
+}
 
-  const docs = await Notification.insertMany(
-    unique.map((recipient) => ({ recipient, type, message, entityType, entityId }))
-  );
-  docs.forEach((doc) => {
-    const payload = doc.toJSON();
-    emitToUser(String(doc.recipient), 'notification:new', payload);
-    emitToRole(ROLES.ADMIN, 'notification:audit', payload); // admins can watch the whole system
+function deliver(notifications) {
+  notifications.forEach((n) => {
+    emitToUser(n.recipientId, 'notification:new', n);
+    emitToRole(ROLES.ADMIN, 'notification:audit', n); // admins can watch the whole system
   });
-  return docs;
 }
 
-// Who hears about a brand-new ticket: the project's owner, or all staff for the triage queue.
-async function ticketCreatedRecipients(project) {
-  if (project) return [project.owner];
-  return userIdsByRole([ROLES.ADMIN, ROLES.MANAGER]);
+// For callers that are not inside a transaction (comments, the due-soon job).
+async function createAndDeliver(args) {
+  const created = await create(args);
+  deliver(created);
+  return created;
 }
 
-// Escalations: project owner + admins, or all staff for project-less tickets.
-async function escalationRecipients(project) {
-  if (project) return [project.owner, ...(await userIdsByRole([ROLES.ADMIN]))];
-  return userIdsByRole([ROLES.ADMIN, ROLES.MANAGER]);
+// Who hears about a brand new ticket: the project's manager, or all managers and admins for a general ticket.
+async function ticketCreatedRecipients(project, db) {
+  if (project) return [project.managerId];
+  return userRepository.idsByRole([ROLES.ADMIN, ROLES.MANAGER], db);
+}
+
+// Escalations go to the project's manager and the admins, or to all managers and admins for a general ticket.
+async function escalationRecipients(project, db) {
+  if (project) return [project.managerId, ...(await userRepository.idsByRole([ROLES.ADMIN], db))];
+  return userRepository.idsByRole([ROLES.ADMIN, ROLES.MANAGER], db);
 }
 
 async function list(user, { unread, scope, page, limit }) {
   if (scope === 'all' && user.role !== ROLES.ADMIN) throw ApiError.forbidden('Only admins can view all notifications');
-  const filter = scope === 'all' ? {} : { recipient: user._id };
-  if (unread !== undefined) filter.isRead = !unread;
-
-  let query = Notification.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit);
-  if (scope === 'all') query = query.populate('recipient', 'name email role');
-  const [data, total, unreadCount] = await Promise.all([
-    query.lean(),
-    Notification.countDocuments(filter),
-    Notification.countDocuments({ recipient: user._id, isRead: false }),
+  const [{ data, total }, unreadCount] = await Promise.all([
+    notificationRepository.list({ userId: user.id, scope, unread, page, limit }),
+    notificationRepository.countUnread(user.id),
   ]);
   return { data, meta: { ...pageMeta(total, page, limit), unreadCount } };
 }
 
-// Only the recipient can mark a notification read (admins viewing "all" cannot).
+// Marking someone else's notification as read finds nothing, so it looks like a 404.
 async function markRead(user, id) {
-  const doc = await Notification.findOneAndUpdate(
-    { _id: id, recipient: user._id },
-    { isRead: true, readAt: new Date() },
-    { new: true }
-  );
-  if (!doc) throw ApiError.notFound('Notification not found');
-  return doc;
+  const notification = await notificationRepository.markRead(id, user.id);
+  if (!notification) throw ApiError.notFound('Notification not found');
+  return notification;
 }
 
-async function markAllRead(user) {
-  const res = await Notification.updateMany({ recipient: user._id, isRead: false }, { isRead: true, readAt: new Date() });
-  return { modified: res.modifiedCount };
-}
+const markAllRead = async (user) => ({ modified: await notificationRepository.markAllRead(user.id) });
 
-const unreadCount = (user) => Notification.countDocuments({ recipient: user._id, isRead: false });
+const unreadCount = (user) => notificationRepository.countUnread(user.id);
 
 module.exports = {
-  notify, ticketCreatedRecipients, escalationRecipients, list, markRead, markAllRead, unreadCount,
+  create, deliver, createAndDeliver, ticketCreatedRecipients, escalationRecipients, list, markRead, markAllRead, unreadCount,
 };
